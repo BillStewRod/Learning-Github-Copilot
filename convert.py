@@ -1,42 +1,48 @@
+# Import necessary modules
 import os
-import yaml
 import eyed3
-import time
+import yaml
+import datetime
 
-# Get all audio file in the 'audio' directory
+# Function to write data to a YAML file
+def write_to_yaml(audio_files):
+  # Create a dictionary with the data to be written to the YAML file
+  data = {
+    'title': 'The Future in Tech',
+    'subtitle': 'Powered by LinkedIn Learning',
+    'author': 'Ray Villalobos',
+    'description': 'Conversations with leaders building next generation techology tools.',
+    'image': '/images/artwork.jpg',
+    'language': 'en-us',
+    'category': 'Technology',
+    'format': 'audio/mpeg',
+    'item': audio_files  # The audio files data will be written under the 'item' key
+  }
+  # Open the YAML file in write mode and dump the data into it
+  with open('episodes.yaml', 'w') as file:
+    yaml.dump(data, file)
+
+# Function to get audio files data
 def get_audio_files():
-    audio_files = []
-    for file in os.listdir('audio'):
-        if file.endswith('.mp3'):
-            # Load the audio file using the eyed3 library
-            audio_file = eyed3.load(os.path.join('audio', file))
-            comments = ''
-            # Get all comments in the audio file
-            if audio_file.tag.comments:
-                for comment in audio_file.tag.comments:
-                    comments += comment.text
-            # Get the duration of the audio file
-            duration = time.strftime('%H:%M:%S', time.gmtime(audio_file.info.time_secs))
-            # Get the size of the audio file
-            size = os.path.getsize(os.path.join('audio', file))
-            size_str = '{:,}'.format(size)
-            # Add the audio file information to the list
-            audio_files.append({
-                'title': audio_file.tag.title,
-                'description': comments,
-                'file': '/audio/' + file,
-                'duration': duration,
-                'length': size_str
-            })
-    return audio_files
+  # Use a list comprehension to create a list of dictionaries, each containing data for one audio file
+  audio_files = [{
+    'title': audiofile.tag.title,
+    'description': ', '.join(comment.text for comment in audiofile.tag.comments),
+    'published': audiofile.tag.release_date,
+    'file': '/audio/' + file,
+    'duration': str(datetime.timedelta(seconds=int(audiofile.info.time_secs))),
+    'length': "{:,}".format(os.path.getsize(os.path.join('audio', file)))
+  } for file in os.listdir('audio') if file.endswith('.mp3') for audiofile in [eyed3.load(os.path.join('audio', file))]]
+  return audio_files
 
-# Convert the audio files to YAML format
-def convert_to_yaml():
-    data = get_audio_files()
-    yaml_data = yaml.dump(data, sort_keys=False)
-    # Write the YAML data to a file
-    with open('episodes.yaml', 'w') as f:
-        f.write(yaml_data)
+# Function to prevent YAML from sorting the data
+def noalias_dumper(dumper, data):
+  return dumper.represent_mapping(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, data.items(), flow_style=False)
 
-# Call the convert_to_yaml function
-convert_to_yaml()
+# Register the function as a representer for dictionaries
+yaml.add_representer(dict, noalias_dumper)
+
+# Get the audio files data
+audio_files = get_audio_files()
+# Write the data to the YAML file
+write_to_yaml(audio_files)
