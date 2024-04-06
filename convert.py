@@ -3,7 +3,7 @@ import yaml
 import eyed3
 import time
 
-# Get all audio files in the 'audio' directory
+# Get all audio file in the 'audio' directory
 def get_audio_files():
     audio_files = []
     for file in os.listdir('audio'):
